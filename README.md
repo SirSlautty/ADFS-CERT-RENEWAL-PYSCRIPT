@@ -7,7 +7,7 @@ This is a fast attempt at developing a python script that automatically renews A
 
 **THIS IS A WORK IN PROGRESS, ANY FEEDBACK OR POINTERS ARE MUCH APPRECIATED**
 
-developing a custom python script that automates token renewals in an AD FS environment
+developing a custom python script that automates certificate renewals in an AD FS environment
 
 -Use the AD FS Management module for Windows PowerShell to gather the necessary information about the existing token-signing and token-decrypting certificates.
 
