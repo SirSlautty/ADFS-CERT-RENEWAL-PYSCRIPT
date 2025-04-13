@@ -1,0 +1,42 @@
+import subprocess
+import datetime
+
+def run_powershell(command):
+    completed = subprocess.run(
+        ["powershell", "-Command", command],
+        capture_output=True,
+        text=True
+    )
+    if completed.returncode != 0:
+        print(f"Error: {completed.stderr}")
+    else:
+        print(completed.stdout)
+    return completed
+
+def generate_adfs_ssl_cert():
+    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+    cert_name = f"ADFS_SSL_{timestamp}"
+    
+    ps_script = f'''
+    $cert = New-SelfSignedCertificate -DnsName "adfs.domain.com" `
+        -CertStoreLocation "Cert:\\LocalMachine\\My" `
+        -FriendlyName "{cert_name}" `
+        -KeyExportPolicy Exportable `
+        -KeyLength 2048 `
+        -KeySpec Signature `
+        -HashAlgorithm "SHA256" `
+        -Provider "Microsoft RSA SChannel Cryptographic Provider" `
+        -NotAfter (Get-Date).AddYears(1)
+
+    $thumbprint = $cert.Thumbprint
+
+    # Set the new SSL certificate for ADFS
+    Set-AdfsSslCertificate -Thumbprint $thumbprint
+
+    Write-Output "New ADFS SSL Certificate generated and applied with Thumbprint: $thumbprint"
+    '''
+
+    run_powershell(ps_script)
+
+if __name__ == "__main__":
+    generate_adfs_ssl_cert()
