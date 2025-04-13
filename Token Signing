@@ -1,0 +1,32 @@
+import subprocess
+
+def run_powershell(command):
+    completed = subprocess.run(
+        ["powershell", "-Command", command],
+        capture_output=True,
+        text=True
+    )
+    if completed.returncode != 0:
+        print(f"Error: {completed.stderr}")
+    else:
+        print(completed.stdout)
+    return completed
+
+def generate_token_signing_cert():
+    ps_script = '''
+    # Backup current certs (optional)
+    $certs = Get-AdfsCertificate -CertificateType Token-Signing
+    $certs | ForEach-Object {
+        Write-Output "Existing Cert Thumbprint: $($_.Thumbprint)"
+    }
+
+    # Generate new token signing cert
+    Update-AdfsCertificate -CertificateType Token-Signing -Urgent
+
+    Write-Output "New Token Signing Certificate generated. You may need to update federated apps manually."
+    '''
+
+    run_powershell(ps_script)
+
+if __name__ == "__main__":
+    generate_token_signing_cert()
