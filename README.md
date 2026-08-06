@@ -1,28 +1,56 @@
-# ADFS-CERT-RENEWAL-PYSCRIPT
-ADFS Cert renewal py script
+# AD FS Certificate Renewal Toolkit
 
-**READ ME**
+Python wrappers for inspecting and rotating certificates on Windows Server AD FS farms. The commands are intentionally explicit: inspection is the default, and certificate-changing operations require `--apply`.
 
-This is a fast attempt at developing a python script that automatically renews AD FS environment certificates 
+> [!CAUTION]
+> Test certificate rotation in a non-production farm first. Token-signing certificate changes can require federation partners to refresh metadata. Service communication/SSL certificates normally need a publicly trusted certificate and coordinated WAP updates; a self-signed certificate is rarely appropriate.
 
-**THIS IS A WORK IN PROGRESS, ANY FEEDBACK OR POINTERS ARE MUCH APPRECIATED**
+## Requirements
 
-developing a custom python script that automates certificate renewals in an AD FS environment
+- Windows Server with the AD FS PowerShell module
+- Python 3.9+
+- An elevated PowerShell session on the primary AD FS server
+- A current farm backup and a rollback plan
 
--Use the AD FS Management module for Windows PowerShell to gather the necessary information about the existing token-signing and token-decrypting certificates.
+## Inspect the farm
 
--Use the cryptography library in Python to generate new self-signed certificates for token-signing and token-decrypting.
+```powershell
+py adfs_certificates.py inventory
+```
 
--Use the AD FS Management module for Windows PowerShell to import the new certificates and set them as the primary token-signing and token-decrypting certificates.
+## Rotate a token-signing certificate
 
--Use a scheduling tool, such as schedule or cron, to run the script on a regular basis to automatically renew the certificates before they expire.
+Preview the command:
 
->>>It's also important to consider the security aspect while creating the script. Here are a few best practices to follow:<<<
+```powershell
+py adfs_certificates.py rotate-token-signing
+```
 
--Properly validate and sanitize user input to prevent injection attacks.
+Apply it after validating federation metadata monitoring and partner requirements:
 
--Securely store and transmit sensitive information, such as passwords and private keys.
+```powershell
+py adfs_certificates.py rotate-token-signing --apply
+```
 
--Use secure coding practices to prevent common vulnerabilities, such as buffer overflows and SQL injection.
+AD FS automatic certificate rollover is the preferred mechanism for token-signing and token-decrypting certificates in most environments. Urgent rotation is intended for compromise or a controlled maintenance event.
 
--Limit the permissions of the script's execution environment as much as possible to prevent privilege escalation.
+## Validate an SSL certificate before assignment
+
+This toolkit does not generate a production SSL certificate. It validates an existing Local Computer certificate and prints the `Set-AdfsSslCertificate` command:
+
+```powershell
+py adfs_certificates.py validate-ssl --thumbprint THUMBPRINT
+py adfs_certificates.py validate-ssl --thumbprint THUMBPRINT --apply
+```
+
+The certificate must have a private key, include Server Authentication EKU, be currently valid, and contain the federation service name in its DNS names.
+
+## Safety model
+
+- No secret or private-key material is read by Python.
+- PowerShell is invoked without `shell=True`.
+- Thumbprints accept hexadecimal characters only.
+- Mutating commands are dry runs unless `--apply` is supplied.
+- Errors and PowerShell exit codes are propagated to automation.
+
+The original prototype files remain for historical context. New automation should use `adfs_certificates.py`.
